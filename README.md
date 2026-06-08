@@ -142,6 +142,10 @@ This firmware has been compiled successfully but needs physical verification. If
 - [ ] Pico wakes from deep sleep when controller is plugged in
 - [ ] Controller continues charging after wake-from-sleep reboot
 
+## Enclosure
+
+3D-printable enclosure design files and notes are in the [`enclosure/`](enclosure/) directory.
+
 ## License
 
 [MIT](LICENSE)
