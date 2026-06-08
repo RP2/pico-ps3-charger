@@ -1,0 +1,34 @@
+# Pico SDK (clone locally or set PICO_SDK_PATH)
+pico-sdk/
+
+# Build output
+build/
+
+# Compiled objects
+*.o
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+*.dis
+*.lst
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!pico_sdk_import.cmake
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
