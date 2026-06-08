@@ -97,11 +97,10 @@ void tuh_umount_cb(uint8_t dev_addr)
 
 void usb_host_deinit(void)
 {
-    // Stop TinyUSB host processing.
-    // After this, PIO state machines are still running but
-    // we'll reboot on wake anyway, so a clean shutdown isn't
-    // critical. The important thing is to stop driving the bus
-    // so the D+ pin can be used as a wake source.
+    // Mark as disconnected and turn off LED before entering deep sleep.
+    // We don't fully deinitialize TinyUSB or PIO here because we'll
+    // reboot on wake anyway. The main loop stops calling tuh_task()
+    // before entering sleep, so the bus is effectively idle.
     device_mounted = false;
     gpio_put(LED_PIN, 0);
 }

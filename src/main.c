@@ -72,10 +72,12 @@ static void enter_deep_sleep(void)
     // Small delay for GPIO to settle
     sleep_ms(50);
 
-    // Enable GPIO wake from dormant: D+ pin (GP0)
-    // The RP2040 wakes from dormant when any enabled GPIO
-    // has a level change matching the configuration.
-    // We want to wake on D+ going HIGH (device connected).
+    // TODO: Verify this is the correct register for dormant wake.
+    // proc_in_sync_bypass bypasses the input synchronizer, which may
+    // be needed for GPIO wake from dormant mode. If wake doesn't work
+    // during testing, try using gpio_set_irq_enabled() with
+    // GPIO_IRQ_LEVEL_HIGH instead, or check the RP2040 datasheet
+    // section 2.16.2 for the correct dormant wake mechanism.
     hw_set_bits(&syscfg_hw->proc_in_sync_bypass, 1u << PIN_DP);
 
     // Enter dormant mode - XOSC stops, CPU halts.
