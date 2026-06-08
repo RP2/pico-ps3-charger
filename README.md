@@ -148,4 +148,6 @@ This firmware has been compiled successfully but needs physical verification. If
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the [MIT License](LICENSE).
+
+The compiled binary includes third-party code (Pico SDK, TinyUSB, Pico-PIO-USB). See [NOTICE](NOTICE) for attribution and license details.
