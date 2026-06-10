@@ -7,13 +7,13 @@
  * this firmware provides that handshake via TinyUSB's host stack.
  *
  * LED states:
- *   Solid ON  = Controller connected and charging
- *   Slow blink = Powered, waiting for controller
- *   OFF       = Deep sleep (near-zero power draw)
+ *   Solid ON   = Controller connected and charging
+ *   Slow blink  = Powered, waiting for controller
+ *   OFF         = Deep sleep (wakes on controller plug-in)
  *
  * Deep sleep:
  *   After SLEEP_TIMEOUT_SEC seconds with no device connected,
- *   the Pico enters dormant mode (~1.9uA). It wakes when a
+ *   the Pico enters dormant mode. It wakes automatically when a
  *   controller is plugged in (D+ rising edge) and reboots.
  */
 
@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "pico/stdlib.h"
-#include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/structs/syscfg.h"
 #include "hardware/xosc.h"
@@ -59,25 +58,26 @@ static void enter_deep_sleep(void)
     // Turn off LED
     gpio_put(LED_PIN, 0);
 
-    // Deinitialize USB host (stop PIO state machines, release pins)
-    usb_host_deinit();
-
-    // Configure D+ pin as input with pull-down.
-    // When a DS3 is plugged in, its internal 1.5kΩ pull-up
-    // on D+ pulls the line high, triggering wake.
+    // Disconnect GP0/GP1 from PIO-USB and configure as GPIO inputs.
+    // gpio_init() sets the pin function to SIO (regular GPIO),
+    // which disconnects it from PIO. This is critical — if PIO
+    // is still driving the pin, the pull-down won't take effect
+    // and the wake mechanism won't work.
     gpio_init(PIN_DP);
     gpio_set_dir(PIN_DP, GPIO_IN);
     gpio_pull_down(PIN_DP);
 
+    gpio_init(PIN_DM);
+    gpio_set_dir(PIN_DM, GPIO_IN);
+
     // Small delay for GPIO to settle
     sleep_ms(50);
 
-    // TODO: Verify this is the correct register for dormant wake.
-    // proc_in_sync_bypass bypasses the input synchronizer, which may
-    // be needed for GPIO wake from dormant mode. If wake doesn't work
-    // during testing, try using gpio_set_irq_enabled() with
-    // GPIO_IRQ_LEVEL_HIGH instead, or check the RP2040 datasheet
-    // section 2.16.2 for the correct dormant wake mechanism.
+    // Enable dormant wake source: D+ going high.
+    // When a DS3 is plugged in, its internal 1.5kΩ pull-up
+    // on D+ pulls the line high, triggering wake.
+    // proc_in_sync_bypass allows the GPIO signal to reach
+    // the wake logic even when clocks are stopped.
     hw_set_bits(&syscfg_hw->proc_in_sync_bypass, 1u << PIN_DP);
 
     // Enter dormant mode - XOSC stops, CPU halts.
@@ -86,8 +86,7 @@ static void enter_deep_sleep(void)
 
     // --- WOKE UP HERE ---
     // After waking from dormant, the system is in a partially
-    // initialized state. The simplest and most reliable approach
-    // is to reboot the Pico completely.
+    // initialized state. Reboot the Pico completely.
     watchdog_reboot(0, 0, 0);
 
     // Should never reach here

@@ -41,8 +41,4 @@ void usb_host_task(void);
 // Returns true if a device is currently mounted (charging).
 bool usb_host_device_connected(void);
 
-// Deinitialize USB host (stop PIO, release pins).
-// Called before entering deep sleep.
-void usb_host_deinit(void);
-
 #endif /* USB_HOST_H */

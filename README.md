@@ -4,31 +4,31 @@ DualShock 3 / Sixaxis controller charger using a Raspberry Pi Pico.
 
 The PS3 controller won't charge from a dumb 5V source — it requires a USB host handshake (RESET, SET_ADDRESS, GET_DESCRIPTOR) before it enables its charging circuit. This firmware provides that handshake using Pico-PIO-USB and TinyUSB.
 
-> **⚠️ This firmware is untested on physical hardware.** Flash at your own risk. See [Testing Checklist](#testing-checklist) for what still needs verification.
+> **⚠️ This firmware has been tested on physical hardware but may still have edge cases.** See [Testing Checklist](#testing-checklist) for what's been verified.
 
 ## Wiring
 
 ```
-Pico GP0  ──[22Ω]──► D+     ┐
-Pico GP1  ──[22Ω]──► D-     │  USB-A Female Connector
-Pico VBUS ───────────► VBUS │  (solder to breakout board)
-Pico GND  ───────────► GND  ┘
+Pico GP0  ───────────► D+     ┐
+Pico GP1  ───────────► D-     │  USB-A Female Connector
+Pico VBUS ───────────► VBUS   │  (solder to breakout board)
+Pico GND  ───────────► GND    ┘
 ```
 
-- **22Ω resistors** on D+ and D- lines (in series, between Pico pin and connector pin — required for USB signal integrity)
+- **22Ω series resistors** on D+ and D- are optional for short wire runs (under ~10cm). They improve signal integrity on longer runs but are not required for direct soldered connections.
 - **VBUS** comes from the Pico's micro-USB port (5V from your wall charger)
 - **No pull-up resistor needed** on D+ — the DS3 provides its own
 - Plugging in a non-DS3 USB device won't harm anything, but it won't do anything useful either
 
 ### Parts
 
-| Part                   | Qty | Notes                         |
-| ---------------------- | --- | ----------------------------- |
-| Raspberry Pi Pico      | 1   | Any Pico variant works        |
-| USB-A female connector | 1   | Panel-mount or breakout board |
-| 22Ω resistor           | 2   | 0805 SMD or 1/4W through-hole |
-| Micro-USB cable        | 1   | For power from wall adapter   |
-| 5V wall adapter        | 1   | ≥1A recommended               |
+| Part                    | Qty | Notes                              |
+| ----------------------- | --- | ---------------------------------- |
+| Raspberry Pi Pico       | 1   | Any Pico variant works             |
+| USB-A female connector  | 1   | Panel-mount or breakout board      |
+| 22Ω resistor            | 2   | Optional for short wire runs       |
+| Micro-USB cable         | 1   | For power from wall adapter        |
+| 5V wall adapter         | 1   | ≥1A recommended                    |
 
 ## LED States
 
@@ -36,11 +36,11 @@ Pico GND  ───────────► GND  ┘
 | ----------------- | ---------------------------------- |
 | Solid ON          | Controller connected and charging  |
 | Slow blink (1 Hz) | Powered on, waiting for controller |
-| OFF               | Deep sleep (µA-range power draw)   |
+| OFF               | Deep sleep (wakes on plug-in)     |
 
 ## Deep Sleep
 
-After 10 seconds with no controller connected, the Pico enters dormant mode. The RP2040 itself draws ~1.9µA in dormant, but the overall Pico board draw will be higher due to the voltage regulator and passives. It wakes automatically when a controller is plugged in (D+ rising edge) and reboots to resume charging.
+After 10 seconds with no controller connected, the Pico enters dormant mode (~1.9µA RP2040 draw). It wakes automatically when a controller is plugged in (D+ rising edge) and reboots to resume charging.
 
 ## Flashing
 
@@ -124,23 +124,23 @@ The firmware uses TinyUSB in host-only mode with **all class drivers disabled** 
 | Symptom                                | Likely Cause                | Fix                                                                  |
 | -------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
 | LED never turns on                     | PIO-USB not initializing    | Check that GP0/GP1 are connected correctly (D+ on GP0, D- on GP1)    |
-| LED blinks but never goes solid        | DS3 not enumerating         | Check 22Ω resistors are in series on D+/D-, not pull-ups to VBUS     |
+| LED blinks but never goes solid        | DS3 not enumerating         | Check solder joints on D+/D-, try adding 22Ω series resistors        |
 | Controller plugged in but not charging | Enumeration failing         | Try a different USB cable between Pico and wall adapter              |
-| Pico gets hot                          | Short circuit on D+/D-      | Check for solder bridges between D+ and D- or to VBUS/GND            |
-| Pico won't wake from sleep             | Dormant wake not triggering | See TODO in `src/main.c` line 75 — may need alternate wake mechanism |
+| Pico gets hot                          | Short circuit on D+/D-      | Check for solder bridges between D+ and D- or to VBUS/GND           |
+| Pico won't wake from deep sleep        | D+ not pulling high         | Check that GP0 is connected to D+ on the USB-A connector            |
 
 ## Testing Checklist
 
-This firmware has been compiled successfully but needs physical verification. If you test it, please open an issue with results.
-
 - [x] Compiles without errors
-- [ ] Pico boots and LED blinks (no controller connected)
-- [ ] DS3 controller charges when plugged in
-- [ ] LED turns solid ON when controller is connected
-- [ ] LED returns to slow blink when controller is disconnected
+- [x] Pico boots and LED blinks (no controller connected)
+- [x] DS3 controller charges when plugged in
+- [x] LED turns solid ON when controller is connected
+- [x] LED returns to slow blink when controller is disconnected
 - [ ] Pico enters deep sleep after 10 seconds idle
 - [ ] Pico wakes from deep sleep when controller is plugged in
 - [ ] Controller continues charging after wake-from-sleep reboot
+- [ ] Works reliably with 22Ω series resistors on D+/D-
+- [ ] Works reliably with longer wire runs (>10cm)
 
 ## Enclosure
 
