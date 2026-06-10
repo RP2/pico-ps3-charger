@@ -65,9 +65,7 @@ target_link_libraries(ps3-pico-charger PRIVATE
     pico_stdlib
     hardware_gpio
     hardware_clocks
-    hardware_watchdog
     hardware_pio
-    hardware_xosc
     tinyusb_host
     tinyusb_pico_pio_usb
     pico_pio_usb
@@ -92,8 +90,9 @@ target_compile_definitions(ps3-pico-charger PRIVATE
     CFG_TUSB_MCU=OPT_MCU_RP2040
 )
 
-# Generate UF2 output (drag-and-drop flashable)
-pico_add_extra_outputs(ps3-pico-charger)
+# Generate UF2 output only (drag-and-drop flashable)
+# pico_add_extra_outputs would also produce .bin, .hex, .dis, .map — unnecessary.
+pico_add_uf2_output(ps3-pico-charger)
 
 # Disable stdio USB/UART (not needed for a charger)
 pico_enable_stdio_usb(ps3-pico-charger 0)

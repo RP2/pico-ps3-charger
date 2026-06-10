@@ -9,22 +9,12 @@
  * LED states:
  *   Solid ON   = Controller connected and charging
  *   Slow blink  = Powered, waiting for controller
- *   OFF         = Deep sleep (wakes on controller plug-in)
- *
- * Deep sleep:
- *   After SLEEP_TIMEOUT_SEC seconds with no device connected,
- *   the Pico enters dormant mode. It wakes automatically when a
- *   controller is plugged in (D+ rising edge) and reboots.
  */
 
 #include <stdio.h>
-#include <string.h>
 
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
-#include "hardware/structs/syscfg.h"
-#include "hardware/xosc.h"
-#include "hardware/watchdog.h"
 
 #include "usb_host.h"
 
@@ -48,52 +38,6 @@ static void led_slow_blink(void)
 }
 
 //--------------------------------------------------------------------
-// Deep Sleep (Dormant Mode)
-//--------------------------------------------------------------------
-
-// Enter dormant mode. Wakes when D+ goes high (controller plugged in).
-// After wake, we reboot the Pico to reinitialize everything cleanly.
-static void enter_deep_sleep(void)
-{
-    // Turn off LED
-    gpio_put(LED_PIN, 0);
-
-    // Disconnect GP0/GP1 from PIO-USB and configure as GPIO inputs.
-    // gpio_init() sets the pin function to SIO (regular GPIO),
-    // which disconnects it from PIO. This is critical — if PIO
-    // is still driving the pin, the pull-down won't take effect
-    // and the wake mechanism won't work.
-    gpio_init(PIN_DP);
-    gpio_set_dir(PIN_DP, GPIO_IN);
-    gpio_pull_down(PIN_DP);
-
-    gpio_init(PIN_DM);
-    gpio_set_dir(PIN_DM, GPIO_IN);
-
-    // Small delay for GPIO to settle
-    sleep_ms(50);
-
-    // Enable dormant wake source: D+ going high.
-    // When a DS3 is plugged in, its internal 1.5kΩ pull-up
-    // on D+ pulls the line high, triggering wake.
-    // proc_in_sync_bypass allows the GPIO signal to reach
-    // the wake logic even when clocks are stopped.
-    hw_set_bits(&syscfg_hw->proc_in_sync_bypass, 1u << PIN_DP);
-
-    // Enter dormant mode - XOSC stops, CPU halts.
-    // Wakes when D+ goes high (GPIO event).
-    xosc_dormant();
-
-    // --- WOKE UP HERE ---
-    // After waking from dormant, the system is in a partially
-    // initialized state. Reboot the Pico completely.
-    watchdog_reboot(0, 0, 0);
-
-    // Should never reach here
-    while (1) { tight_loop_contents(); }
-}
-
-//--------------------------------------------------------------------
 // Main
 //--------------------------------------------------------------------
 
@@ -102,37 +46,15 @@ int main(void)
     // Initialize USB host (sets clock to 120 MHz)
     usb_host_init();
 
-    // Track time of last disconnect for sleep timeout
-    absolute_time_t idle_start = get_absolute_time();
-    bool was_connected = false;
-
     while (true) {
         // Process USB host events
         usb_host_task();
 
-        bool connected = usb_host_device_connected();
-
-        if (connected) {
+        if (usb_host_device_connected()) {
             // Device is charging - LED is solid ON (set by mount callback)
-            idle_start = get_absolute_time();
-            was_connected = true;
         } else {
-            // No device - check if we should enter deep sleep
-            if (was_connected) {
-                // Just disconnected - reset timer
-                idle_start = get_absolute_time();
-                was_connected = false;
-            }
-
-            // Slow blink while waiting
+            // No device - slow blink while waiting
             led_slow_blink();
-
-            // Check sleep timeout
-            int64_t elapsed_sec = absolute_time_diff_us(idle_start, get_absolute_time()) / 1000000;
-            if (elapsed_sec >= SLEEP_TIMEOUT_SEC) {
-                enter_deep_sleep();
-                // After reboot, we start fresh from main()
-            }
         }
 
         // Small delay to avoid busy-waiting

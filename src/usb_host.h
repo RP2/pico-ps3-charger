@@ -25,9 +25,6 @@
 // System clock must be a multiple of 12 MHz for PIO-USB
 #define SYS_CLOCK_KHZ  120000
 
-// Seconds with no device before entering deep sleep
-#define SLEEP_TIMEOUT_SEC  10
-
 //--------------------------------------------------------------------
 // API
 //--------------------------------------------------------------------

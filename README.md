@@ -36,11 +36,8 @@ Pico GND  ───────────► GND    ┘
 | ----------------- | ---------------------------------- |
 | Solid ON          | Controller connected and charging  |
 | Slow blink (1 Hz) | Powered on, waiting for controller |
-| OFF               | Deep sleep (wakes on plug-in)     |
 
-## Deep Sleep
-
-After 10 seconds with no controller connected, the Pico enters dormant mode (~1.9µA RP2040 draw). It wakes automatically when a controller is plugged in (D+ rising edge) and reboots to resume charging.
+The LED blinks continuously while no controller is connected. Once a DS3 is plugged in and enumerated, the LED turns solid ON. If the controller is unplugged, the LED resumes blinking.
 
 ## Flashing
 
@@ -97,17 +94,20 @@ cmake ..
 make
 ```
 
+The build produces `ps3-pico-charger.uf2` — the only file needed for flashing.
+
 ## How It Works
 
 1. Pico boots, sets clock to 120 MHz (required by PIO-USB)
 2. Initializes PIO-USB on GP0/GP1 and TinyUSB host stack
-3. When a DS3 is plugged in, TinyUSB performs USB enumeration:
+3. LED blinks slowly while waiting for a controller
+4. When a DS3 is plugged in, TinyUSB performs USB enumeration:
    - USB RESET (SE0 for 10-20ms)
    - SET_ADDRESS (assigns device address)
    - GET_DESCRIPTOR (reads device descriptor)
-4. DS3 sees a valid USB host and enables charging
-5. LED turns solid ON
-6. If no controller for 10 seconds → deep sleep → wake on reconnect
+5. DS3 sees a valid USB host and enables charging
+6. LED turns solid ON
+7. If the controller is unplugged, LED resumes blinking
 
 ## Architecture
 
@@ -127,7 +127,6 @@ The firmware uses TinyUSB in host-only mode with **all class drivers disabled** 
 | LED blinks but never goes solid        | DS3 not enumerating         | Check solder joints on D+/D-, try adding 22Ω series resistors        |
 | Controller plugged in but not charging | Enumeration failing         | Try a different USB cable between Pico and wall adapter              |
 | Pico gets hot                          | Short circuit on D+/D-      | Check for solder bridges between D+ and D- or to VBUS/GND           |
-| Pico won't wake from deep sleep        | D+ not pulling high         | Check that GP0 is connected to D+ on the USB-A connector            |
 
 ## Testing Checklist
 
@@ -136,9 +135,6 @@ The firmware uses TinyUSB in host-only mode with **all class drivers disabled** 
 - [x] DS3 controller charges when plugged in
 - [x] LED turns solid ON when controller is connected
 - [x] LED returns to slow blink when controller is disconnected
-- [ ] Pico enters deep sleep after 10 seconds idle
-- [ ] Pico wakes from deep sleep when controller is plugged in
-- [ ] Controller continues charging after wake-from-sleep reboot
 - [ ] Works reliably with 22Ω series resistors on D+/D-
 - [ ] Works reliably with longer wire runs (>10cm)
 
