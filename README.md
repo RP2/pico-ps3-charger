@@ -58,7 +58,7 @@ You need the Pico SDK cloned separately (it's not included in this repo).
 sudo pacman -S cmake arm-none-eabi-gcc arm-none-eabi-newlib git python3
 
 git clone --depth 1 --recurse-submodules https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
-git clone https://github.com/RP2/ps3-pico-charger.git
+git clone https://github.com/RP2/pico-ps3-charger.git
 cd ps3-pico-charger
 mkdir build && cd build
 export PICO_SDK_PATH=~/pico-sdk
@@ -73,7 +73,7 @@ sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi \
                  libstdc++-arm-none-eabi-newlib python3 git
 
 git clone --depth 1 --recurse-submodules https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
-git clone https://github.com/RP2/ps3-pico-charger.git
+git clone https://github.com/RP2/pico-ps3-charger.git
 cd ps3-pico-charger
 mkdir build && cd build
 export PICO_SDK_PATH=~/pico-sdk
@@ -87,7 +87,7 @@ make
 brew install cmake gcc-arm-embedded
 
 git clone --depth 1 --recurse-submodules https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
-git clone https://github.com/RP2/ps3-pico-charger.git
+git clone https://github.com/RP2/pico-ps3-charger.git
 cd ps3-pico-charger
 mkdir build && cd build
 export PICO_SDK_PATH=~/pico-sdk
@@ -144,10 +144,6 @@ The firmware uses TinyUSB in host-only mode with **all class drivers disabled** 
 - [x] Controller charges when unplugged and re-plugged during normal operation
 - [ ] Works reliably with 22Ω series resistors on D+/D-
 - [ ] Works reliably with longer wire runs (>10cm)
-
-## Enclosure
-
-3D-printable enclosure design files and notes are in the [`enclosure/`](enclosure/) directory.
 
 ## License
 
