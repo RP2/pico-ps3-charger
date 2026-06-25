@@ -21,6 +21,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pico_pio_usb)
 
+# Fetch pico-extras for sleep/dormant support (sleep_power_up)
+FetchContent_Declare(
+    pico_extras
+    GIT_REPOSITORY https://github.com/raspberrypi/pico-extras.git
+    GIT_TAG        master
+)
+FetchContent_MakeAvailable(pico_extras)
+include(${pico_extras_SOURCE_DIR}/post_init.cmake)
+
 # Tell the Pico SDK's TinyUSB integration where to find Pico-PIO-USB
 # This enables the tinyusb_pico_pio_usb target which provides hcd_pio_usb.c
 set(PICO_PIO_USB_PATH ${pico_pio_usb_SOURCE_DIR})
@@ -66,9 +75,13 @@ target_link_libraries(ps3-pico-charger PRIVATE
     hardware_gpio
     hardware_clocks
     hardware_pio
+    hardware_pll
+    hardware_watchdog
+    hardware_xosc
     tinyusb_host
     tinyusb_pico_pio_usb
     pico_pio_usb
+    hardware_sleep
 )
 
 # Include directories
@@ -91,7 +104,6 @@ target_compile_definitions(ps3-pico-charger PRIVATE
 )
 
 # Generate UF2 output only (drag-and-drop flashable)
-# pico_add_extra_outputs would also produce .bin, .hex, .dis, .map — unnecessary.
 pico_add_uf2_output(ps3-pico-charger)
 
 # Disable stdio USB/UART (not needed for a charger)

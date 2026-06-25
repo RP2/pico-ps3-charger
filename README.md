@@ -36,8 +36,9 @@ Pico GND  ───────────► GND    ┘
 | ----------------- | ---------------------------------- |
 | Solid ON          | Controller connected and charging  |
 | Slow blink (1 Hz) | Powered on, waiting for controller |
+| Off               | Deep sleep (power saving mode)     |
 
-The LED blinks continuously while no controller is connected. Once a DS3 is plugged in and enumerated, the LED turns solid ON. If the controller is unplugged, the LED resumes blinking.
+After 5 seconds with no controller connected, the Pico enters XOSC dormant deep sleep (~2 mA). Plugging a DS3 into the USB-A port causes its D+ pull-up to wake the Pico, which then re-initializes the USB host and enumerates the controller — LED turns solid ON and charging begins.
 
 ## Flashing
 
@@ -101,13 +102,15 @@ The build produces `ps3-pico-charger.uf2` — the only file needed for flashing.
 1. Pico boots, sets clock to 120 MHz (required by PIO-USB)
 2. Initializes PIO-USB on GP0/GP1 and TinyUSB host stack
 3. LED blinks slowly while waiting for a controller
-4. When a DS3 is plugged in, TinyUSB performs USB enumeration:
+4. If no controller is connected after 5 seconds, the Pico enters XOSC dormant deep sleep (~2 mA). D+ (GP0) is configured as a wake pin with an internal pulldown.
+5. When a DS3 is plugged into the USB-A port, its internal 1.5 kΩ pull-up brings D+ high, waking the Pico.
+6. On wake, clocks are restored and a watchdog reboot triggers a fresh boot.
+7. The booted firmware detects the wake-from-sleep indication and performs a forced USB bus reset, then TinyUSB enumeration proceeds:
    - USB RESET (SE0 for 10-20ms)
    - SET_ADDRESS (assigns device address)
    - GET_DESCRIPTOR (reads device descriptor)
-5. DS3 sees a valid USB host and enables charging
-6. LED turns solid ON
-7. If the controller is unplugged, LED resumes blinking
+8. DS3 sees a valid USB host and enables charging — LED turns solid ON
+9. If the controller is unplugged, LED resumes blinking for 5 seconds, then the Pico returns to deep sleep
 
 ## Architecture
 
@@ -135,6 +138,10 @@ The firmware uses TinyUSB in host-only mode with **all class drivers disabled** 
 - [x] DS3 controller charges when plugged in
 - [x] LED turns solid ON when controller is connected
 - [x] LED returns to slow blink when controller is disconnected
+- [x] Pico enters deep sleep 5 seconds after controller disconnects (LED off)
+- [x] Plugging a DS3 into the USB-A port wakes the Pico from deep sleep
+- [x] Controller charges after wake from deep sleep
+- [x] Controller charges when unplugged and re-plugged during normal operation
 - [ ] Works reliably with 22Ω series resistors on D+/D-
 - [ ] Works reliably with longer wire runs (>10cm)
 
